@@ -69,6 +69,12 @@ def main():
         type=bool
     )
 
+    parser.add_argument(
+        "--ref_batch",
+        default="VIRTUAL_imagenet256_labeled.npz",  # or your reference image npz file
+        help="Path to reference batch NPZ file containing images (arr_0)"
+    )
+
     args = parser.parse_args()
 
     # Configure TensorFlow session
