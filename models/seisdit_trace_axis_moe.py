@@ -87,6 +87,7 @@ class SparseMoEBlock(nn.Module):
             capacity_pred = F.sigmoid(capacity_pred)
             S = capacity_pred.size(0)
             topk = int((S / self.num_experts) * self.capacity)
+            topk = max(1, min(S, topk))
             threshold = self.expert_threshold
             ema_decay = self.ema_decay
 
@@ -108,6 +109,7 @@ class SparseMoEBlock(nn.Module):
 
         capacity_pred = self.capacity_predictor(x.detach())
         k = int((S / self.num_experts) * self.capacity)
+        k = max(1, min(S, k))
 
         logits = F.linear(x, self.gate_weight, None)
         scores = logits.softmax(dim=-1).permute(1, 0)
@@ -171,7 +173,10 @@ class SparseMoEBlock(nn.Module):
 
         for i, expert in enumerate(self.experts):
             k_fixed = torch.where(capacity_pred[:, i] > threshold[i], 1, 0).sum()
+            k_fixed = min(S, int(k_fixed.item()))
             processed_tokens += k_fixed
+            if k_fixed == 0:
+                continue
             gating, index = torch.topk(scores[i], k=k_fixed, dim=-1, sorted=False)
             y[index, :] += gating.unsqueeze(-1) * expert(x[index, :])
 
